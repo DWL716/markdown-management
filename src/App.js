@@ -42,6 +42,7 @@ function App() {
         <div className="col-9 right-panel">
           <TableList 
             files={defaultFiles}
+            activeId="1"
             onTabClick={(id) => {console.log(id);}}
           />
         </div>

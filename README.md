@@ -30,3 +30,6 @@ yarn add @fortawesome/free-brands-svg-icons
 
 ## classnames
 yarn add classnames
+
+## node-sass 添加 css 预处理
+yarn add node-sass

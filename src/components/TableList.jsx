@@ -1,16 +1,32 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 import PropTypes  from 'prop-types'
 import { useCallback } from 'react'
+import classNames from 'classnames'
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faTimes } from "@fortawesome/free-solid-svg-icons";
 
+import './TableList.scss'
 function  TableList({files, activeId, unsaveIds, onTabClick, onCloseTab}) {
+  
   return (
-    <ul className="nav nav-pills">
+    <ul className="nav nav-pills tableList-component">
       {
-        files.map(file => (
+        
+        files.map(file => {
+          const fClassnames = classNames({
+            "nav-link": true,
+            "active": file.id === activeId
+          })
+          return (
           <li className="nav-item" key={file.id}>
-            <a href="#" onClick={(e) => {e.preventDefault(); onTabClick(file.id)}}>{file.title}</a>
+            <a href="#"  className={fClassnames} onClick={(e) => {e.preventDefault(); onTabClick(file.id)}}>
+              {file.title}
+              <span className="col-2 font-markdown-padding close-icon">
+                <FontAwesomeIcon icon={faTimes} className="ml-2" />
+              </span>
+            </a>
           </li>
-        ))
+        )})
       }
     </ul>
   )
