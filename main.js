@@ -11,6 +11,6 @@ app.on("ready", () => {
     }
   })
 
-  const urlLocation = isDev ? "http://localhost:3000" : "no";
+  const urlLocation = isDev ? "http://localhost:3001" : "no";
   mainWindow.loadURL(urlLocation);
 })

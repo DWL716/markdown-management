@@ -33,3 +33,6 @@ yarn add classnames
 
 ## node-sass 添加 css 预处理
 yarn add node-sass
+
+## easyMDE 提交 markdown 编辑器
+yarn add react-simplemde-editor
