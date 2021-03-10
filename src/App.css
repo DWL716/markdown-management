@@ -1,6 +1,11 @@
 .window-heigh {
   height: 100vh;
 }
+.start-page {
+  text-align: center;
+  line-height: 300px;
+  font-size: 30px;
+}
 
 .icon-button {
   background: none;
@@ -29,4 +34,10 @@
   left: 0;
   right: 0;
   bottom: 0;
+}
+
+
+/* 导入导出按钮 */
+.no-border {
+  border-radius: 0 !important;
 }

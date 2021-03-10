@@ -47,7 +47,7 @@ function FileList({ files, onFileClick, onSaveEdit, onFileDelete }) {
               <span className="col-2 font-markdown-padding">
                 <FontAwesomeIcon size="lg" icon={faMarkdown} />
               </span>
-              <span onClick={onFileClick} className="col-7 left-file-title">
+              <span onClick={() => {onFileClick(file.id)}} className="col-7 left-file-title">
                 {file.title}
               </span>
               <button

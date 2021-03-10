@@ -47,7 +47,7 @@ function FileSearch({title, onFileSearch}) {
     }
   }, [inputActive])
   return (
-    <div className="alert alert-primary mb-0">
+    <div className="alert no-border alert-primary mb-0">
       {
         !inputActive && 
         <div className="d-flex justify-content-between align-items-center">
