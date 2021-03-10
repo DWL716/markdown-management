@@ -16,6 +16,8 @@ import './App.css';
 function App() {
   // markdown的所有数据
   const [files, setFiles] = useState(defaultFiles)
+  // 用来搜索的数组
+  const [searchedFiles, setSearchedFiles] = useState([])
   // 当前打开的文件
   const [activeFileID, setActiveFileID] = useState('')
   // 当前有那些打开的文件
@@ -89,15 +91,19 @@ function App() {
     setFiles(newFiles)
   }, [files])
   
+  // 搜索功能
   const onFileSearch = useCallback((value) => {
     console.log(value);
-  }, [])
+    const newFiles = files.filter(file => file.title.includes(value))
+    setSearchedFiles(newFiles)
+  }, [files])
+  const fileListArr = (searchedFiles.length > 0) ? searchedFiles : files
   return (
     <div className="App container-fluid px-0">
       <div className="row no-gutters window-heigh">
         <div className="col-3 left-panel">
           <FileSearch title="我的云文档" onFileSearch={onFileSearch}></FileSearch>
-          <FileList files={files} onFileClick={fileClick} onSaveEdit={updateFileName} onFileDelete={deleteFile}></FileList>
+          <FileList files={fileListArr} onFileClick={fileClick} onSaveEdit={updateFileName} onFileDelete={deleteFile}></FileList>
           <div className="row no-gutters left-btn-bottom">
             <div className="col">
               <BottomBtn text="新建" icon={faPlus} onBtnClick={() => {}} colorClass="btn-primary" />
