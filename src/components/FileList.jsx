@@ -1,40 +1,52 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEdit, faTimes, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { faMarkdown } from "@fortawesome/free-brands-svg-icons";
 import PropTypes from "prop-types";
 
-import useKeyPress from '../hooks/useKeyPress'
+import useKeyPress from "../hooks/useKeyPress";
 
 function FileList({ files, onFileClick, onSaveEdit, onFileDelete }) {
   const [editStatus, setEditStatus] = useState(false);
   const [value, setValue] = useState("");
   let nodeInput = useRef();
-  const enterPressed = useKeyPress(13)
-  const escPressed = useKeyPress(27)
+  const enterPressed = useKeyPress(13);
+  const escPressed = useKeyPress(27);
   // 关闭
-  const closeSearch = () => {
+  const closeSearch = useCallback((fileID) => {
     setEditStatus(false);
     setValue("");
-  };
+    onFileDelete(fileID)
+  }, [onFileDelete]);
 
   useEffect(() => {
-    if (enterPressed && editStatus) {
-      const editItem = files.find(file => file.id === editStatus)
-      onSaveEdit(editItem.id, value)
-      setEditStatus(false)
-      setValue("")
+    const editItem = files.find((file) => file.id === editStatus);
+    if (enterPressed && editStatus && value.trim()) {
+      onSaveEdit(editItem.id, value);
+      setEditStatus(false);
+      setValue("");
     }
-    if (escPressed && editStatus) {
-      closeSearch()
+    if (escPressed && editStatus && value) {
+      onSaveEdit(editItem.id, value);
+      closeSearch();
     }
-  }, [editStatus, enterPressed, escPressed, files, onSaveEdit, value])
+  }, [closeSearch, editStatus, enterPressed, escPressed, files, onSaveEdit, value]);
 
   useEffect(() => {
     if (editStatus) {
-      nodeInput.current.focus()
+      nodeInput.current.focus();
     }
-  })
+  });
+  // 当有创建新当file时候
+  useEffect(() => {
+    const newFile = files.find((file) => file.isNew);
+    console.log(newFile);
+    // 将editStatus 的id设置成当前新建文件的id
+    if (newFile) {
+      setEditStatus(newFile.id);
+      setValue(newFile.title);
+    }
+  }, [files]);
   return (
     <ul className="list-group list-group-flush file-list ">
       {files.map((file) => (
@@ -42,18 +54,23 @@ function FileList({ files, onFileClick, onSaveEdit, onFileDelete }) {
           className="list-group-item bg-light d-flex row align-item-center mx-0"
           key={file.id}
         >
-          {file.id !== editStatus && (
+          {file.id !== editStatus && !files.isNew && (
             <>
               <span className="col-2 font-markdown-padding">
                 <FontAwesomeIcon size="lg" icon={faMarkdown} />
               </span>
-              <span onClick={() => {onFileClick(file.id)}} className="col-7 left-file-title">
+              <span
+                onClick={() => {
+                  onFileClick(file.id);
+                }}
+                className="col-7 left-file-title"
+              >
                 {file.title}
               </span>
               <button
                 onClick={() => {
-                  setEditStatus(file.id)
-                  setValue(file.title)
+                  setEditStatus(file.id);
+                  setValue(file.title);
                 }}
                 className="col-1 font-icon-pad-left icon-button"
               >
@@ -69,7 +86,7 @@ function FileList({ files, onFileClick, onSaveEdit, onFileDelete }) {
               </button>
             </>
           )}
-          {file.id === editStatus && (
+          {(file.id === editStatus || files.isNew) && (
             <>
               <div className="d-flex justify-content-between align-items-center">
                 <input
@@ -78,11 +95,13 @@ function FileList({ files, onFileClick, onSaveEdit, onFileDelete }) {
                   placeholder="请输入文件名称"
                   ref={nodeInput}
                   value={value}
-                  onChange={(e) => {setValue(e.target.value)}}
+                  onChange={(e) => {
+                    setValue(e.target.value);
+                  }}
                 />
                 <button
                   type="button"
-                  onClick={closeSearch}
+                  onClick={() => {closeSearch(file.id)}}
                   className="icon-button"
                 >
                   <FontAwesomeIcon

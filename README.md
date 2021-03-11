@@ -36,3 +36,6 @@ yarn add node-sass
 
 ## easyMDE 提交 markdown 编辑器
 yarn add react-simplemde-editor
+
+## uuid 将ID变为唯一识别码
+yarn add uuid

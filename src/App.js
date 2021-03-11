@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import SimpleMDE from 'react-simplemde-editor'
+import {v4 as uuidv4} from 'uuid'
 
 import FileSearch from './components/FileSearch'
 import FileList from './components/FileList'
@@ -85,6 +86,7 @@ function App() {
     const newFiles = files.map(file => {
       if (file.id === id) {
         file.title = title
+        file.isNew = false
       }
       return file
     })
@@ -97,6 +99,21 @@ function App() {
     const newFiles = files.filter(file => file.title.includes(value))
     setSearchedFiles(newFiles)
   }, [files])
+  // 新建文件
+  const createNewFile = useCallback(() => {
+    const newID = uuidv4()
+    const newFiles = [
+      ...files,
+      {
+        id: newID,
+        title: '',
+        body: '## 请输入内容',
+        createAt: new Date().getTime(),
+        isNew: true,
+      }
+    ]
+    setFiles(newFiles)
+  }, [files])
   const fileListArr = (searchedFiles.length > 0) ? searchedFiles : files
   return (
     <div className="App container-fluid px-0">
@@ -106,7 +123,7 @@ function App() {
           <FileList files={fileListArr} onFileClick={fileClick} onSaveEdit={updateFileName} onFileDelete={deleteFile}></FileList>
           <div className="row no-gutters left-btn-bottom">
             <div className="col">
-              <BottomBtn text="新建" icon={faPlus} onBtnClick={() => {}} colorClass="btn-primary" />
+              <BottomBtn text="新建" icon={faPlus} onBtnClick={createNewFile} colorClass="btn-primary" />
             </div>
             <div className="col">
               <BottomBtn text="导入" icon={faFileImport} onBtnClick={() => {}} colorClass="btn-success" />
