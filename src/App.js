@@ -6,17 +6,38 @@ import FileSearch from './components/FileSearch'
 import FileList from './components/FileList'
 import BottomBtn from './components/BottomBtn'
 import TableList from './components/TableList'
-import { faPlus, faFileImport } from "@fortawesome/free-solid-svg-icons"; 
+import { faPlus, faFileImport, faSave } from "@fortawesome/free-solid-svg-icons"; 
 
-import defaultFiles from './utils/defaultFiles'
+// import defaultFiles from './utils/defaultFiles'
+import fileHelper  from './utils/fileHelper'
+import {objToArr} from './utils/helper'
 
 import 'bootstrap/dist/css/bootstrap.min.css'
 import "easymde/dist/easymde.min.css";
 import './App.css';
 
+const { join, basename, extname, dirname } = window.require('path')
+const {remote} = window.require("electron");
+const Store = window.require("electron-store")
+const fileStore = new Store({"name": "files Data"})
+
+const saveFilesToStore = (files) => {
+  const filesObjectStore = objToArr(files).reduce((result, file) => {
+    const {id, path, title, createAt} = file;
+    result[id] = {
+      id,
+      path,
+      title,
+      createAt
+    }
+    return result
+  }, {})
+  fileStore.set("files", filesObjectStore)
+}
+
 function App() {
   // markdown的所有数据
-  const [files, setFiles] = useState(defaultFiles)
+  const [files, setFiles] = useState(fileStore.get('files') || {})
   // 用来搜索的数组
   const [searchedFiles, setSearchedFiles] = useState([])
   // 当前打开的文件
@@ -25,21 +46,39 @@ function App() {
   const [openedFileIDs, setOpenedFileIDs] = useState([])
   // 当前未保存的文件
   const [unsavedFileIDs, setUnsavedFileIDs] = useState([])
+
+  // 获取files对象，并将转化为数组
+  const filesArr = objToArr(files)
+  console.log("filesArr", filesArr);
+  console.log("files", filesArr);
+  const activeFile = files[activeFileID]
+  const fileListArr = (searchedFiles.length > 0) ? searchedFiles : filesArr
+
+  const savedLocation = remote.app.getPath("documents")
   // 从files过滤出打开的文件
   const openedFiles = openedFileIDs.map(openID => {
-    return files.find(file => file.id === openID)
+    // return files.find(file => file.id === openID)
+    return files[openID]
   });
   // 
-  const activeFile = files.find(file => file.id === activeFileID)
+  // const activeFile = files.find(file => file.id === activeFileID)
 
   // 点击文件列表每一个文件的回调函数
   const fileClick = useCallback((fileID) => {
     console.log(fileID);
     setActiveFileID(fileID)
+    const currentFile = files[fileID]
+    // 读取文件的内容并存到持久化数据库中
+    if (!currentFile.isLoaded) {
+      fileHelper.readFile(currentFile.path).then((value) => {
+        const newFile = {...files[fileID], body: value, isLoaded: true}
+        setFiles({...files, [fileID]: newFile})
+      })
+    }
     if (!openedFileIDs.includes(fileID)) {
       setOpenedFileIDs([...openedFileIDs, fileID])
     }
-  }, [openedFileIDs])
+  }, [files, openedFileIDs])
 
   // 点击tab文件时候的回调
   const tabClick = useCallback((tabID) => {
@@ -61,60 +100,95 @@ function App() {
   }, [openedFileIDs])
   
   // md文本编辑回调
-  const fileChange = useCallback((fileID, value) => {
-    let newFiles = files.map(file => {
-      if (file.id === fileID) {
-        file.body = value
+  const fileChange = useCallback((id, value) => {
+    if (value !== files[id].body) {
+      const newFile = { ...files[id], body: value }
+      setFiles({ ...files, [id]: newFile })
+      // update unsavedIDs
+      if (!unsavedFileIDs.includes(id)) {
+        setUnsavedFileIDs([ ...unsavedFileIDs, id])
       }
-      return file;
-    });
-    if (!unsavedFileIDs.includes(fileID)) {
-      setUnsavedFileIDs([...unsavedFileIDs, fileID])
-      setFiles(newFiles)
     }
   }, [files, unsavedFileIDs])
   // 删除文件列表中的某个文件
-  const deleteFile = useCallback((fileID) => {
-    const newFiles = files.filter(file => file.id !== fileID)
-    setFiles(newFiles)
-    closeClick(fileID)
-  }, [closeClick, files])
+  const deleteFile = (id) => {
+    if (files[id].isNew) {
+      const { [id]: value, ...afterDelete } = files
+      setFiles(afterDelete)
+    } else {
+      fileHelper.deleteFile(files[id].path).then(() => {
+        const { [id]: value, ...afterDelete } = files
+        console.log("onFileDelete", afterDelete);
+        setFiles(afterDelete)
+        saveFilesToStore(afterDelete)
+        // close the tab if opened
+        closeClick(id)
+      })
+    }
+  }
   
-  // 修改文件名
-  const updateFileName = useCallback((id, title) => {
-    console.log(id, title);
-    const newFiles = files.map(file => {
-      if (file.id === id) {
-        file.title = title
-        file.isNew = false
-      }
-      return file
-    })
-    setFiles(newFiles)
-  }, [files])
+  // 修改文件名 
+  const updateFileName = useCallback((id, title, isNew) => {
+    const newPath = isNew ? join(savedLocation, `${title}.md`): join(dirname(files[id].path), `${title}.md`)
+    const modifiedFile = { ...files[id], title, isNew: false, path: newPath }
+    const newFiles = { ...files, [id]: modifiedFile }
+    if (isNew) {
+      fileHelper.writeFile(newPath, files[id].body).then(() => {
+        setFiles(newFiles)
+        saveFilesToStore(newFiles)
+      })
+    } else {
+      const oldPath = files[id].path
+      fileHelper.renameFile(oldPath, newPath).then(() => {
+        setFiles(newFiles)
+        saveFilesToStore(newFiles)
+      })
+    }
+    // const newFiles = files.map(file => {
+    //   if (file.id === id) {
+    //     if (isNew) {
+    //       fileHelper.writeFile(newPath, file.body).then(() => {
+    //         setFiles(newFiles)
+    //       })
+    //     } else {
+    //       fileHelper.renameFile(join(savedLocation, `${file.title}.md`), join(savedLocation, `${title}.md`))
+    //     }
+    //     file.title = title
+    //     file.isNew = false
+    //     file.path = newPath
+    //   }
+    //   return file
+    // })
+
+    
+  }, [files, savedLocation])
   
   // 搜索功能
-  const onFileSearch = useCallback((value) => {
-    console.log(value);
-    const newFiles = files.filter(file => file.title.includes(value))
+  const onFileSearch = useCallback((keyword) => {
+    const newFiles = filesArr.filter(file => file.title.includes(keyword))
     setSearchedFiles(newFiles)
-  }, [files])
+  }, [filesArr])
   // 新建文件
   const createNewFile = useCallback(() => {
     const newID = uuidv4()
-    const newFiles = [
-      ...files,
-      {
-        id: newID,
-        title: '',
-        body: '## 请输入内容',
-        createAt: new Date().getTime(),
-        isNew: true,
-      }
-    ]
-    setFiles(newFiles)
+    const newFile = {
+      id: newID,
+      title: '',
+      body: '## 请输出 Markdown',
+      createdAt: new Date().getTime(),
+      isNew: true,
+    }
+    setFiles({ ...files, [newID]: newFile })
   }, [files])
-  const fileListArr = (searchedFiles.length > 0) ? searchedFiles : files
+  const saveCurrentFile = useCallback(() => {
+    const { path, body, title } = activeFile
+    fileHelper.writeFile(path, body).then(() => {
+      setUnsavedFileIDs(unsavedFileIDs.filter(id => id !== activeFile.id))
+      // if (getAutoSync()) {
+      //   ipcRenderer.send('upload-file', {key: `${title}.md`, path })
+      // }
+    })
+  }, [activeFile, unsavedFileIDs])
   return (
     <div className="App container-fluid px-0">
       <div className="row no-gutters window-heigh">
@@ -147,9 +221,10 @@ function App() {
                 value={activeFile && activeFile.body}
                 onChange={(value) => {fileChange(activeFile.id, value)}}
                 options={{
-                  minHeight: "510px"
+                  minHeight: "450px"
                 }}
               />
+              <BottomBtn text="保存" icon={faSave} onBtnClick={saveCurrentFile} colorClass="btn-primary" />
             </>
           ) }
         </div>

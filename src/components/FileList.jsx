@@ -13,22 +13,26 @@ function FileList({ files, onFileClick, onSaveEdit, onFileDelete }) {
   const enterPressed = useKeyPress(13);
   const escPressed = useKeyPress(27);
   // 关闭
-  const closeSearch = useCallback((fileID) => {
+  const closeSearch = useCallback((editItem) => {
+    console.log(editItem);
     setEditStatus(false);
     setValue("");
-    onFileDelete(fileID)
+    if (editItem.isNew) {
+      onFileDelete(editItem.id)
+    }
   }, [onFileDelete]);
 
   useEffect(() => {
     const editItem = files.find((file) => file.id === editStatus);
     if (enterPressed && editStatus && value.trim()) {
-      onSaveEdit(editItem.id, value);
+      onSaveEdit(editItem.id, value, editItem.isNew);
       setEditStatus(false);
       setValue("");
     }
-    if (escPressed && editStatus && value) {
-      onSaveEdit(editItem.id, value);
-      closeSearch();
+    if (escPressed && editStatus) {
+      // onSaveEdit(editItem.id, value);
+      // closeSearch(editItem)
+      closeSearch(editItem)
     }
   }, [closeSearch, editStatus, enterPressed, escPressed, files, onSaveEdit, value]);
 
@@ -101,7 +105,7 @@ function FileList({ files, onFileClick, onSaveEdit, onFileDelete }) {
                 />
                 <button
                   type="button"
-                  onClick={() => {closeSearch(file.id)}}
+                  onClick={() => {closeSearch(file)}}
                   className="icon-button"
                 >
                   <FontAwesomeIcon

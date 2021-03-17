@@ -11,6 +11,7 @@ function  TableList({files, activeId, unsaveIds, onTabClick, onCloseTab}) {
       {
         
         files.map(file => {
+          console.log("unsaveIds==", file);
           const withUnsavedMark = unsaveIds.includes(file.id)
           const fClassnames = classNames({
             "nav-link": true,

@@ -39,3 +39,10 @@ yarn add react-simplemde-editor
 
 ## uuid 将ID变为唯一识别码
 yarn add uuid
+
+## react 页面调用node模块时候为什么要加 window
+因为react 项目是通过webpack 打包的，webpack对import 和 require 文件引入做了特殊处理，所以当使用require时候本质被打包成了特殊的module模块，该模块没用包含node的核心模块，所以需要使用window来通过全局环境来引入node模块
+
+## electron-store
+yarn add electron-store
+使用 electron-store 来持久化数据
