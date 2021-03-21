@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import SimpleMDE from 'react-simplemde-editor'
 import {v4 as uuidv4} from 'uuid'
 
@@ -10,14 +10,14 @@ import { faPlus, faFileImport, faSave } from "@fortawesome/free-solid-svg-icons"
 
 // import defaultFiles from './utils/defaultFiles'
 import fileHelper  from './utils/fileHelper'
-import {objToArr} from './utils/helper'
+import {objToArr, flattenArr} from './utils/helper'
 
 import 'bootstrap/dist/css/bootstrap.min.css'
 import "easymde/dist/easymde.min.css";
 import './App.css';
 
 const { join, basename, extname, dirname } = window.require('path')
-const {remote} = window.require("electron");
+const {remote, ipcRenderer} = window.require("electron");
 const Store = window.require("electron-store")
 const fileStore = new Store({"name": "files Data"})
 
@@ -150,7 +150,7 @@ function App() {
     //       fileHelper.writeFile(newPath, file.body).then(() => {
     //         setFiles(newFiles)
     //       })
-    //     } else {
+    //     } else { 
     //       fileHelper.renameFile(join(savedLocation, `${file.title}.md`), join(savedLocation, `${title}.md`))
     //     }
     //     file.title = title
@@ -189,6 +189,53 @@ function App() {
       // }
     })
   }, [activeFile, unsavedFileIDs])
+  // 导入 md 文件
+  const importFiles = useCallback(() => {
+    ipcRenderer.send("selectFile")
+  }, [])
+
+  const getSelectFile = useCallback((event, paths) => {
+    console.log(paths);
+    if (Array.isArray(paths)) {
+      // filter out the path we already have in electron store
+      // ["/Users/liusha/Desktop/name1.md", "/Users/liusha/Desktop/name2.md"]
+      const filteredPaths = paths.filter(path => {
+        const alreadyAdded = Object.values(files).find(file => {
+          return file.path === path
+        })
+        return !alreadyAdded
+      })
+      // extend the path array to an array contains files info
+      // [{id: '1', path: '', title: ''}, {}]
+      const importFilesArr = filteredPaths.map(path => {
+        return {
+          id: uuidv4(),
+          title: basename(path, extname(path)),
+          path,
+        }
+      })
+      console.log(importFilesArr);
+      // get the new files object in flattenArr
+      const newFiles = { ...files, ...flattenArr(importFilesArr)}
+      // setState and update electron store
+      setFiles(newFiles)
+      saveFilesToStore(newFiles)
+      if (importFilesArr.length > 0) {
+        remote.dialog.showMessageBox({
+          type: 'info',
+          title: `成功导入了${importFilesArr.length}个文件`,
+          message: `成功导入了${importFilesArr.length}个文件`,
+        })
+      }
+    }
+  }, [files])
+
+  useEffect(() => {
+    ipcRenderer.on("getSelectFile", getSelectFile)
+    return () => {
+      ipcRenderer.removeAllListeners("getSelectFile")
+    }
+  }, [getSelectFile])
   return (
     <div className="App container-fluid px-0">
       <div className="row no-gutters window-heigh">
@@ -200,7 +247,7 @@ function App() {
               <BottomBtn text="新建" icon={faPlus} onBtnClick={createNewFile} colorClass="btn-primary" />
             </div>
             <div className="col">
-              <BottomBtn text="导入" icon={faFileImport} onBtnClick={() => {}} colorClass="btn-success" />
+              <BottomBtn text="导入" icon={faFileImport} onBtnClick={importFiles} colorClass="btn-success" />
             </div>
           </div>
         </div>
