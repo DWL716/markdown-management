@@ -11,6 +11,7 @@ import { faPlus, faFileImport, faSave } from "@fortawesome/free-solid-svg-icons"
 // import defaultFiles from './utils/defaultFiles'
 import fileHelper  from './utils/fileHelper'
 import {objToArr, flattenArr} from './utils/helper'
+import useIpcRenderer from './hooks/useIpcRenderer'
 
 import 'bootstrap/dist/css/bootstrap.min.css'
 import "easymde/dist/easymde.min.css";
@@ -20,6 +21,7 @@ const { join, basename, extname, dirname } = window.require('path')
 const {remote, ipcRenderer} = window.require("electron");
 const Store = window.require("electron-store")
 const fileStore = new Store({"name": "files Data"})
+const settingsStore = new Store({name: 'Settings'})
 
 const saveFilesToStore = (files) => {
   const filesObjectStore = objToArr(files).reduce((result, file) => {
@@ -49,12 +51,13 @@ function App() {
 
   // 获取files对象，并将转化为数组
   const filesArr = objToArr(files)
-  console.log("filesArr", filesArr);
-  console.log("files", filesArr);
+  // console.log("filesArr", filesArr);
+  // console.log("files", filesArr);
   const activeFile = files[activeFileID]
   const fileListArr = (searchedFiles.length > 0) ? searchedFiles : filesArr
 
-  const savedLocation = remote.app.getPath("documents")
+  const savedLocation = settingsStore.get('savedFileLocation') || remote.app.getPath('documents')
+  console.log(settingsStore);
   // 从files过滤出打开的文件
   const openedFiles = openedFileIDs.map(openID => {
     // return files.find(file => file.id === openID)
@@ -101,6 +104,7 @@ function App() {
   
   // md文本编辑回调
   const fileChange = useCallback((id, value) => {
+    // 判断 内容是否有变化，如果没有变化则不触发
     if (value !== files[id].body) {
       const newFile = { ...files[id], body: value }
       setFiles({ ...files, [id]: newFile })
@@ -230,12 +234,19 @@ function App() {
     }
   }, [files])
 
-  useEffect(() => {
-    ipcRenderer.on("getSelectFile", getSelectFile)
-    return () => {
-      ipcRenderer.removeAllListeners("getSelectFile")
-    }
-  }, [getSelectFile])
+  // useEffect(() => {
+  //   ipcRenderer.on("getSelectFile", getSelectFile)
+  //   return () => {
+  //     ipcRenderer.removeAllListeners("getSelectFile")
+  //   }
+  // }, [getSelectFile])
+  
+  useIpcRenderer({
+    "getSelectFile": getSelectFile, // 通过main进程开启dialog
+    'create-new-file': createNewFile, // 创建文件
+    'import-file': importFiles,  // 导入文件
+    'save-edit-file': saveCurrentFile, // 保存文件
+  }, [getSelectFile, createNewFile, importFiles, saveCurrentFile])
   return (
     <div className="App container-fluid px-0">
       <div className="row no-gutters window-heigh">
@@ -263,15 +274,16 @@ function App() {
                 onCloseTab={closeClick}
                 onTabClick={tabClick}
               />
-              <SimpleMDE
-                key={activeFile && activeFile.id }
-                value={activeFile && activeFile.body}
-                onChange={(value) => {fileChange(activeFile.id, value)}}
-                options={{
-                  minHeight: "450px"
-                }}
-              />
-              <BottomBtn text="保存" icon={faSave} onBtnClick={saveCurrentFile} colorClass="btn-primary" />
+                <SimpleMDE
+                  key={activeFile && activeFile.id }
+                  value={activeFile && activeFile.body}
+                  onChange={(value) => {fileChange(activeFile.id, value)}}
+                  options={{
+                    minHeight: "450px",
+                    maxHeight: "510px"
+                  }}
+                />
+              {/* <BottomBtn text="保存" icon={faSave} onBtnClick={saveCurrentFile} colorClass="btn-primary" /> */}
             </>
           ) }
         </div>
