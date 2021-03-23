@@ -46,3 +46,6 @@ yarn add uuid
 ## electron-store
 yarn add electron-store
 使用 electron-store 来持久化数据
+
+## qiniu
+远程存储的 SDK
