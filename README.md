@@ -108,3 +108,8 @@ npm install qiniu
 
 ## 优化打包的体积
 将package.json 配置文件中 dependencies 项的关于渲染端依赖(即electron不需要用到的全部放到devDependencies里)放到devDependencies
+
+## 使用webpack来打包electron的main入口文件
+配置查看 webpack.config.js 文件
+通过 webpack 将main.js 入口文件打包到 /build 文件夹内
+再到 package.json 的 build 的配置项中添加 extraMetadata 时electron打包时指定入口文件在 build 上

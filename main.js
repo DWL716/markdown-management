@@ -1,8 +1,7 @@
-const {app, dialog, Menu} = require("electron");
+const {app, dialog, Menu, ipcMain} = require("electron");
 const path = require("path")
 const isDev = require("electron-is-dev");
 const Store = require('electron-store');
-const { ipcMain } = require("electron/main");
 const settingsStore = new Store({ name: 'Settings'})
 const fileStore = new Store({name: 'Files Data'})
 const menuTemplate = require("./src/menuTemplate")
@@ -10,7 +9,7 @@ const AppWindow = require("./src/AppWindow")
 
 let mainWindow, settingsWindow;
 app.on("ready", () => {
-  const urlLocation = isDev ? 'http://localhost:5010' : `file://${path.join(__dirname, "./build/index.html")}`
+  const urlLocation = isDev ? 'http://localhost:5010' : `file://${path.join(__dirname, "./index.html")}`
   mainWindow = new AppWindow({}, urlLocation)
   mainWindow.on('closed', () => {
     mainWindow = null
@@ -27,9 +26,10 @@ ipcMain.on('open-settings-window', () => {
     height: 400,
     parent: mainWindow  
   }
-  const settingsFileLocation = `file://${path.join(__dirname, './settings/settings.html')}`
+  const settingsFileLocation = `file://${path.join(__dirname, '../settings/settings.html')}`
   settingsWindow = new AppWindow(settingsWindowConfig, settingsFileLocation)
   settingsWindow.removeMenu()
+  settingsWindow.webContents.openDevTools()
   settingsWindow.on('closed', () => {
     settingsWindow = null
   })
