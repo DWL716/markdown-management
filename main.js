@@ -10,7 +10,7 @@ const AppWindow = require("./src/AppWindow")
 
 let mainWindow, settingsWindow;
 app.on("ready", () => {
-  const urlLocation = isDev ? 'http://localhost:5010' : "no"
+  const urlLocation = isDev ? 'http://localhost:5010' : `file://${path.join(__dirname, "./build/index.html")}`
   mainWindow = new AppWindow({}, urlLocation)
   mainWindow.on('closed', () => {
     mainWindow = null
