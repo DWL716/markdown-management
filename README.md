@@ -104,3 +104,7 @@ npm install qiniu
 如果是 electron-builder 则根据官网建议使用 yarn add electron-builder --dev 来安装
 如果是electron 可以将 node_modules 重新其他的依赖重新安装，然后再最后安装electron 依赖
 或者参考这个issue: https://github.com/electron/electron/issues/8466#issuecomment-571425574
+
+
+## 优化打包的体积
+将package.json 配置文件中 dependencies 项的关于渲染端依赖(即electron不需要用到的全部放到devDependencies里)放到devDependencies
